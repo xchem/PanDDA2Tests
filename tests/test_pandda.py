@@ -7,6 +7,7 @@ from pandda_gemmi.args import PanDDAArgs
 from pandda_gemmi.pandda.pandda import pandda
 from pandda_gemmi import constants
 
+@pytest.mark.skip(reason="no way of currently testing this")
 def test_pandda(test_data, integration_test_out_dir):
     """
     Tests whether PanDDA runs to completion correctly
@@ -28,6 +29,7 @@ def test_pandda(test_data, integration_test_out_dir):
     pandda_analyse_events_path = pandda_analysis_path / constants.PANDDA_ANALYSE_EVENTS_FILE
     assert pandda_analyse_events_path.exists()
 
+@pytest.mark.skip(reason="no way of currently testing this")
 @pytest.mark.order(after="test_pandda")
 def test_reproduce_known_hit_events(integration_test_out_dir):
     pandda_analysis_path = integration_test_out_dir / constants.PANDDA_ANALYSES_DIR

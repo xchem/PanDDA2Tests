@@ -30,8 +30,8 @@ dependencies = [
     "torch==1.13.1",
     "pytorch-lightning",
     'scikit-image',
-    'gemmi'
-    "pandda_gemmi@git+https://github.com/xchem/PanDDA2.git"
+    'gemmi',
+    "pandda_2_gemmi@git+https://github.com/xchem/PanDDA2.git"
 ] # Add project dependencies here, e.g. ["click", "numpy"]
 dynamic = ["version"]
 license.file = "LICENSE"
