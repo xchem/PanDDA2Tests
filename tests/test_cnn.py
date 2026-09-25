@@ -5,10 +5,13 @@ from rich import print as rprint
 import gemmi
 import numpy as np
 import yaml
+import pandas as pd
 
-from pandda_gemmi.cnn import BuildScorer, LitBuildScoring, load_model_from_checkpoint, EventScorer, LitEventScoring, Event
+from pandda_gemmi.cnn import BuildScorer, LitBuildScoring, load_model_from_checkpoint, EventScorer, Event
+from edanalyzer.models.event_scoring import LitEventScoring
 from pandda_gemmi.fs.pandda_input import LigandFiles
 from pandda_gemmi.autobuild.inbuilt import get_conformers
+from pandda_gemmi.cnn import set_structure_mean
 
 def test_BuildScorer():
     data_dir = Path('data')
@@ -59,16 +62,22 @@ def test_EventScorer():
     xmap_path = data_dir / 'xmap.ccp4'
     zmap_path = data_dir / 'zmap.ccp4'
     ligand_path = data_dir / 'ligand.cif'
+    model_scores_path = data_dir / 'event_score_quantiles.csv'
 
     # Load the config
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
 
+    model_scores_path_df = pd.read_csv(model_scores_path)
+
     # Get the build model
-    model = load_model_from_checkpoint(model_path, LitEventScoring(config), ).eval()
+    model = load_model_from_checkpoint(
+        model_path, 
+        LitEventScoring(None, config), 
+        ).eval()
 
     # Get the build scorer
-    event_scorer = EventScorer(model, config)
+    event_scorer = EventScorer(model, config, table=model_scores_path_df)
 
     # Get the xmap
     xmap = gemmi.read_ccp4_map(str(xmap_path)).grid
@@ -83,13 +92,22 @@ def test_EventScorer():
     bad_event = Event(np.array([20.05, 46.52, 20.25]))
 
     # Get a ligand conf
-    conf = get_conformers(LigandFiles(ligand_path, None, None))[0]
+    confs = get_conformers(LigandFiles(ligand_path, None, None))
+    conf = set_structure_mean(
+                        confs[0], 
+                        #   event.centroid
+                        np.array((8.0, 8.0, 8.0))
+                                              )
 
     # Run the scorer on the good build
-    good_event_score = event_scorer(good_event, conf, zmap, xmap)
+    good_event_score, _, _ = event_scorer(good_event, conf, zmap, xmap)
 
     # Run the scorer on the bad build
-    bad_event_score = event_scorer(bad_event, conf, zmap, xmap)
+    bad_event_score, _, _ = event_scorer(bad_event, conf, zmap, xmap)
 
+    print(good_event_score)
     # Assert the good score is better than bad one
-    assert good_event_score > bad_event_score
+    print(f'Good score {round(good_event_score, 2)} | bad score {round(bad_event_score, 2)}')
+    if good_event_score < bad_event_score:
+        raise Exception(f'Although code ran, the badly scoring event outscored the good one, indicating a model issue!')
+    
